@@ -1,70 +1,63 @@
+$fn=100;
+//clip settings
+clipThickness = 5;
+clipWidth = 50; //how broad the clip is
+clipClearance = 60; // gap of the clip - measure what you want to clip onto;
 
-size = 30; // CHANGE length of inner surface along X
+// Holes settings
+// box
+holesBoxDiameter = 3;
+// clip
+holesClipDiameter = 4.1;
 
-cubeDimsX = 10 + size;
-cubeDimsY = 50;
-cubeDimsZ = 60;
-inner_offset = 10;
-
-cubeSize = 100; // Referenced from STL. DO NOT CHANGE
-
-clipLocX = 5+size/2;
-clipLocY = -50;
-clipLocZ = 75;
-
-boltHolesX = 0;
-boltHolesY = 0;
-boltHolesZ = 22.5;
-boltHolesSp = 10;
-boltHolesInset = 5;
-boltHoleSizeDiam = 2; // CHANGE inner bolt shaft size (mm)
-boltHeadSizeDiam = 6; // CHANGE bolt head shaft size (mm)
-boltHoleLength = 30;
-boltHeadLength = 10;
-
+// for modelling/debugging
+clipToBoxSpacing = 10; //set to '0' for alignement
 
 Main();
 
 module Main() {
-    difference() {
-        AllModels();
-        AllCutouts();
+    difference(){
+        union(){
+            rotate([0,0,90]) import("Box.stl", convexity=10);
+            translate([-3,-86,37]) cube([3,69,50]); //reinforcement
+        }
+        translate([-3, -35, 50]) holes(3, holesBoxDiameter); //cube's wall = 3 mm
     }
+    translate([clipToBoxSpacing,-75,40]) clip();
+    
 }
 
-module AllCutouts() {
-    Cutout_BoltShaft(boltHoleSizeDiam, boltHoleLength);
-    Cutout_BoltHead(boltHeadSizeDiam, boltHoleLength);
+module clip() {
+    difference(){
+        union(){
+            cube([clipThickness,clipWidth,50]); //plate connecting to cube
+            translate([0,0,50]) cube([clipClearance,clipWidth,clipThickness]); //top plate
+            translate([clipClearance-clipThickness,0,0]) cube([clipThickness,clipWidth,50]); //plate furthest from cube
+            
+            // chamfer (closer to box)
+            difference(){ 
+                translate([clipThickness,0,50-clipThickness]) cube([clipThickness,clipWidth,clipThickness]);
+                rotate([90,0,0]) translate([2*clipThickness,50-clipThickness,-clipWidth]) cylinder(h=clipWidth,r=clipThickness);
+                
+            }
+            // chamfer (away from box)
+            difference(){ 
+                translate([clipClearance-2*clipThickness,0,50-clipThickness]) cube([clipThickness,clipWidth,clipThickness]);
+                rotate([90,0,0]) translate([clipClearance-2*clipThickness,50-clipThickness,-clipWidth]) cylinder(h=clipWidth,r=clipThickness);
+            }
+
+            
+            
+        }
+        translate([0, 40, 10]) holes(clipThickness, holesClipDiameter);
+    }
+    
+    
 }
 
-module Cutout_BoltShaft(size, depth) {
-        translate([boltHolesX,boltHolesX,boltHolesZ]) rotate([0,0,90]) translate([cubeSize/-2,boltHoleLength/2,cubeSize/2]) boltholes(size, depth);
-}
-
-module Cutout_BoltHead(size, depth) {
-        translate([boltHolesX,boltHolesX,boltHolesZ]) rotate([0,0,90]) translate([cubeSize/-2,boltHoleLength/2,cubeSize/2]) boltholes(size, depth);
-}
-
-module AllModels() {
-    rotate([0,0,90]) import("box.stl", convexity=10);
-    translate([clipLocX,clipLocY,clipLocZ]) clip(cubeDimsX,cubeDimsY,cubeDimsZ);
-}
-
-
-module clip(X,Y,Z) {
-    difference() {
-        cube([X,Y,Z-10], center = true);
-        translate([0,0,-5]) cube([X-inner_offset,Y+inner_offset, Z-inner_offset], center = true);  
-     }
-}
-
-module boltholes(size, depth) {
-    translate ([boltHolesSp,0,boltHolesSp]) bolthole(size, depth);
-    mirror([1,0,0]) translate ([boltHolesSp,0,boltHolesSp]) bolthole(size, depth);
-    mirror([0,0,1]) translate ([boltHolesSp,0,boltHolesSp]) bolthole(size, depth);
-    mirror([1,0,1]) translate ([boltHolesSp,0,boltHolesSp]) bolthole(size, depth);
-}
-
-module bolthole(size, depth) {
-     rotate([90,0,0]) cylinder(h = depth, r1 = size/2, r2 = size/2, $fn = 12);
-}
+module holes(cylinderHeight, cylinderHoleDiameter) {
+    translate([0,0,0]) rotate([0,90,0]) cylinder(h=cylinderHeight, r=cylinderHoleDiameter);
+    translate([0,-30,0]) rotate([0,90,0]) cylinder(h=cylinderHeight, r=cylinderHoleDiameter);
+    translate([0,0,30]) rotate([0,90,0]) cylinder(h=cylinderHeight, r=cylinderHoleDiameter);
+    translate([0,-30,30]) rotate([0,90,0]) cylinder(h=cylinderHeight, r=cylinderHoleDiameter);
+    }
